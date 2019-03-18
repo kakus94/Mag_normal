@@ -25,7 +25,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "SSD1306.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -90,7 +90,12 @@ int main(void)
   MX_GPIO_Init();
   MX_SPI3_Init();
   /* USER CODE BEGIN 2 */
-
+  ssd1306_init();
+  ssd1306_clear_screen(0xFF);
+  HAL_Delay(1000);
+  ssd1306_clear_screen(0x00);
+  ssd1306_display_string(0, 0, (uint8_t *) "System Init OK", 16, 0);
+  ssd1306_refresh_gram();
   /* USER CODE END 2 */
 
   /* Infinite loop */
