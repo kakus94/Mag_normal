@@ -42,15 +42,8 @@
  void ssd1306_draw_1616char(uint8_t chXpos, uint8_t chYpos, uint8_t chChar);
  void ssd1306_draw_3216char(uint8_t chXpos, uint8_t chYpos, uint8_t chChar);
  void ssd1306_draw_bitmap(uint8_t chXpos, uint8_t chYpos, const uint8_t *pchBmp, uint8_t chWidth, uint8_t chHeight);
- extern void ssd1306_init(void);
 
- //END library ssd1306
-
- //User interface
- void ssd1306_hello_word();
-
-
- //ENE user interface
+extern void ssd1306_init(void);
 
 #endif
 
