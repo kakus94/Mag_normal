@@ -21,6 +21,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "spi.h"
+#include "tim.h"
 #include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
@@ -47,12 +48,12 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-
+volatile uint16_t encoder_count1;
+volatile uint16_t encoder_count2;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
-
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -67,7 +68,7 @@ void SystemClock_Config(void);
  * @retval int
  */
 int main(void)
-{
+ {
 	/* USER CODE BEGIN 1 */
 
 	/* USER CODE END 1 */
@@ -91,27 +92,35 @@ int main(void)
 	/* Initialize all configured peripherals */
 	MX_GPIO_Init();
 	MX_SPI3_Init();
+	MX_TIM13_Init();
+	MX_TIM14_Init();
+	MX_TIM4_Init();
+	MX_TIM8_Init();
 	/* USER CODE BEGIN 2 */
 	ssd1306_init();
 	ssd1306_clear_screen(0xFF);
-	//HAL_Delay(1000);
+	HAL_Delay(1000);
 	ssd1306_clear_screen(0x00);
-	ssd1306_display_string(0, 0, (uint8_t *) "System Init OK", 16, 0);
-	ssd1306_refresh_gram();
-	//HAL_Delay(1000);
-	ssd1306_display_string(0, 0, (uint8_t *) "Praca Magisterska", 16, 1);
-	ssd1306_display_string(10, 16, (uint8_t *) "Kamil Karpiak", 16, 1);
-	ssd1306_refresh_gram();
+	ssd1306_hello_word();
 	printf("Start\n");
 	ITM_SendChar('A');
+
+	HAL_TIM_PWM_Start(&htim13, TIM_CHANNEL_1);
+	HAL_TIM_PWM_Start(&htim14, TIM_CHANNEL_1);
+	HAL_TIM_Encoder_Start(&htim4, TIM_CHANNEL_ALL);
+	HAL_TIM_Encoder_Start(&htim8, TIM_CHANNEL_ALL);
 	/* USER CODE END 2 */
 
 	/* Infinite loop */
 	/* USER CODE BEGIN WHILE */
 	while (1)
 	{
-		printf("Start\n");
-		HAL_Delay(1000);
+
+		HAL_Delay(1);
+		encoder_count1 = TIM4->CNT;
+		encoder_count2 = TIM8->CNT;
+
+
 		/* USER CODE END WHILE */
 
 		/* USER CODE BEGIN 3 */

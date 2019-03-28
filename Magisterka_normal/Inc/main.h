@@ -64,6 +64,14 @@ void Error_Handler(void);
 #define OLED_DC_GPIO_Port GPIOG
 #define OLED_RES_Pin GPIO_PIN_8
 #define OLED_RES_GPIO_Port GPIOC
+#define GPIO_Motor_Control4_Pin GPIO_PIN_10
+#define GPIO_Motor_Control4_GPIO_Port GPIOG
+#define GPIO_Motor_control2_Pin GPIO_PIN_11
+#define GPIO_Motor_control2_GPIO_Port GPIOG
+#define GPIO_Motor_Control3_Pin GPIO_PIN_13
+#define GPIO_Motor_Control3_GPIO_Port GPIOG
+#define GPIO_Motor_control1_Pin GPIO_PIN_15
+#define GPIO_Motor_control1_GPIO_Port GPIOG
 /* USER CODE BEGIN Private defines */
 
 /* USER CODE END Private defines */
