@@ -27,7 +27,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "SSD1306.h"
-
+#include "Motor_Control.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -50,6 +50,8 @@
 /* USER CODE BEGIN PV */
 volatile uint16_t encoder_count1;
 volatile uint16_t encoder_count2;
+volatile uint16_t PWM13;
+volatile uint16_t PWM14;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -68,9 +70,10 @@ void SystemClock_Config(void);
  * @retval int
  */
 int main(void)
- {
+{
 	/* USER CODE BEGIN 1 */
-
+	Motor_InitTypeDef MotorLeft;
+	Motor_InitTypeDef MotorRight;
 	/* USER CODE END 1 */
 
 	/* MCU Configuration--------------------------------------------------------*/
@@ -109,16 +112,33 @@ int main(void)
 	HAL_TIM_PWM_Start(&htim14, TIM_CHANNEL_1);
 	HAL_TIM_Encoder_Start(&htim4, TIM_CHANNEL_ALL);
 	HAL_TIM_Encoder_Start(&htim8, TIM_CHANNEL_ALL);
+
+	vMotor_init(&MotorLeft, &MotorRight);
+
+//	vMotor_Control(&MotorLeft, Back);
+//	vMotor_Control(&MotorRight, Back);
+	vMotor_SetPWM(&MotorLeft,50);
+	vMotor_SetPWM(&MotorRight,100);
+	HAL_Delay(2000);
+	vMotor_Control(&MotorLeft, Forward);
+	vMotor_Control(&MotorRight, Forward);
+//	HAL_GPIO_WritePin(GPIO_Motor_control1_GPIO_Port,GPIO_Motor_control1_Pin,GPIO_PIN_SET);
+//	HAL_GPIO_WritePin(GPIO_Motor_control2_GPIO_Port,GPIO_Motor_control2_Pin,GPIO_PIN_RESET);
+//	HAL_GPIO_WritePin(GPIO_Motor_Control3_GPIO_Port,GPIO_Motor_Control3_Pin,GPIO_PIN_RESET);
+//	HAL_GPIO_WritePin(GPIO_Motor_Control4_GPIO_Port,GPIO_Motor_Control4_Pin,GPIO_PIN_RESET);
 	/* USER CODE END 2 */
 
 	/* Infinite loop */
 	/* USER CODE BEGIN WHILE */
 	while (1)
 	{
-
-
-
-
+		vMotor_SetPWM(&MotorLeft,70);
+		vMotor_SetPWM(&MotorRight,70);
+		HAL_Delay(10);
+		encoder_count1 = TIM8->CNT;
+		encoder_count2 = TIM4->CNT;
+		PWM13 = TIM13->CCR1 ;
+		PWM14 = TIM13->CCR1 ;
 		/* USER CODE END WHILE */
 
 		/* USER CODE BEGIN 3 */
