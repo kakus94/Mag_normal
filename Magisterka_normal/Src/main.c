@@ -132,11 +132,11 @@ int main(void)
 	/* USER CODE BEGIN WHILE */
 	while (1)
 	{
-		vMotor_SetPWM(&MotorLeft,70);
-		vMotor_SetPWM(&MotorRight,70);
+		vMotor_SetPWM(&MotorLeft,80);
+		vMotor_SetPWM(&MotorRight,80);
 		HAL_Delay(10);
-		encoder_count1 = TIM8->CNT;
-		encoder_count2 = TIM4->CNT;
+		encoder_count1 = uGetCounterTim(Motor1_Encoder);
+		encoder_count2 = uGetCounterTim(Motor2_Encoder);
 		PWM13 = TIM13->CCR1 ;
 		PWM14 = TIM13->CCR1 ;
 		/* USER CODE END WHILE */

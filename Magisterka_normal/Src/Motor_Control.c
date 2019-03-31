@@ -6,9 +6,9 @@
  */
 #include "Motor_Control.h"
 
-uint16_t uGetCounterTim(TIM_TypeDef tim)
+uint16_t uGetCounterTim(TIM_TypeDef* tim)
 {
-	return tim.CNT;
+	return tim->CNT;
 }
 
 uint8_t uClearCounter(TIM_TypeDef tim)
@@ -30,7 +30,7 @@ void vMotor_init(Motor_InitTypeDef* Motor_InitStruct1,
 	Motor_InitStruct1->Motor_Pin_int2 = Motor_Pin2;
 	Motor_InitStruct1->number_turns = 0;
 	Motor_InitStruct1->speed = 0;
-	Motor_InitStruct1->Tim_Encoder = Motor1_Tim;
+	Motor_InitStruct1->Tim_Encoder = Motor1_Encoder;
 	Motor_InitStruct1->Tim_PWM = Motor1_PWM;
 
 	Motor_InitStruct2->Motor_GPIO_int1 = Motor_GPIO_pin3;
@@ -39,7 +39,7 @@ void vMotor_init(Motor_InitTypeDef* Motor_InitStruct1,
 	Motor_InitStruct2->Motor_Pin_int2 = Motor_Pin4;
 	Motor_InitStruct2->number_turns = 0;
 	Motor_InitStruct2->speed = 0;
-	Motor_InitStruct2->Tim_Encoder = Motor2_Tim;
+	Motor_InitStruct2->Tim_Encoder = Motor2_Encoder;
 	Motor_InitStruct2->Tim_PWM = Motor2_PWM;
 }
 
@@ -84,6 +84,6 @@ void vMotor_Control(Motor_InitTypeDef* motor, uint8_t eBridgeControl)
 }
 void vMotor_SetPWM(Motor_InitTypeDef* motor, uint8_t dutyPWM)
 {
-	//motor->dutyPWM = (motor->Tim_PWM->ARR / dutyPWM);
-	motor->Tim_PWM->CCR1 = dutyPWM;
+	motor->dutyPWM = (motor->Tim_PWM->ARR * dutyPWM)/100.0;
+	motor->Tim_PWM->CCR1 = motor->dutyPWM;
 }

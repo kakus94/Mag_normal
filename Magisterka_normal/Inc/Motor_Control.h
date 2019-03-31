@@ -22,24 +22,11 @@
 #define Motor_GPIO_pin4	GPIO_Motor_Control4_GPIO_Port
 #define Motor_Pin4		GPIO_Motor_Control4_Pin
 
-#define Motor1_Tim TIM4
-#define Motor2_Tim TIM8
+#define Motor1_Encoder TIM4
+#define Motor2_Encoder TIM8
 
 #define Motor1_PWM TIM13
 #define Motor2_PWM TIM14
-/*
- #define BridgeH_int1_Port	0
- #define BridgeH_int1_Pin	0
-
- #define BridgeH_int2_Port	0
- #define BridgeH_int2_Pin	0
-
- #define BridgeH_int3_Port	0
- #define BridgeH_int3_Pin	0
-
- #define BridgeH_int4_Port	0
- #define BridgeH_int4_Pin	0
- */
 
 enum eBridgeControl
 {
@@ -59,7 +46,17 @@ typedef struct
 	uint32_t number_turns;
 } Motor_InitTypeDef;
 
-uint16_t uGetCounterTim(TIM_TypeDef tim);
+typedef struct{
+	float kp;
+	float ki;
+	float kd;
+	float e;
+	float e_last;
+	float e_sum;
+	float e_sumMax;
+}MotorPIDRegulator_InitTypeDef;
+
+uint16_t uGetCounterTim(TIM_TypeDef* tim);
 uint8_t uClearCounter(TIM_TypeDef tim);
 void vMotor_Control(Motor_InitTypeDef* motor, uint8_t eBridgeControl);
 void vMotor_init(Motor_InitTypeDef* Motor_InitStruct1,
