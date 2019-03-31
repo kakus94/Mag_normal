@@ -10,17 +10,15 @@ uint16_t uGetCounterTim(TIM_TypeDef* tim)
 {
 	return tim->CNT;
 }
-
-uint8_t uClearCounter(TIM_TypeDef tim)
+uint8_t uClearCounter(TIM_TypeDef* tim)
 {
-	tim.CNT = 0;
+	tim->CNT = 0;
 
-	if (tim.CNT == 0)
-		return 1;
-	else
-		return 0;
+//	if (tim->CNT == 0)
+//		return 1;
+//	else
+//		return 0;
 }
-
 void vMotor_init(Motor_InitTypeDef* Motor_InitStruct1,
 		Motor_InitTypeDef* Motor_InitStruct2)
 {
@@ -42,7 +40,6 @@ void vMotor_init(Motor_InitTypeDef* Motor_InitStruct1,
 	Motor_InitStruct2->Tim_Encoder = Motor2_Encoder;
 	Motor_InitStruct2->Tim_PWM = Motor2_PWM;
 }
-
 void vMotor_Control(Motor_InitTypeDef* motor, uint8_t eBridgeControl)
 
 {
@@ -53,7 +50,7 @@ void vMotor_Control(Motor_InitTypeDef* motor, uint8_t eBridgeControl)
 				GPIO_PIN_RESET);
 		HAL_GPIO_WritePin(motor->Motor_GPIO_int2, motor->Motor_Pin_int2,
 				GPIO_PIN_RESET);
-	motor->Tim_PWM->CCR1 = motor->Tim_PWM->ARR;
+		motor->Tim_PWM->CCR1 = motor->Tim_PWM->ARR;
 
 		break;
 	case Back:
@@ -84,6 +81,38 @@ void vMotor_Control(Motor_InitTypeDef* motor, uint8_t eBridgeControl)
 }
 void vMotor_SetPWM(Motor_InitTypeDef* motor, uint8_t dutyPWM)
 {
-	motor->dutyPWM = (motor->Tim_PWM->ARR * dutyPWM)/100.0;
+	motor->dutyPWM = (motor->Tim_PWM->ARR * dutyPWM) / 100.0;
 	motor->Tim_PWM->CCR1 = motor->dutyPWM;
+}
+
+void vMotorPID_init(MotorPID_InitTypeDef* PID1, MotorPID_InitTypeDef* PID2)
+{
+	PID1->e_last = 0;
+	PID1->e_sum = 0;
+	PID1->e_sumMax = MaxPIDki;
+	PID1->kp = KdValue1;
+	PID1->ki = KiValue1;
+	PID1->kd = KdValue1;
+	PID1->ValueTask = 90;
+
+	PID2->e_last = 0;
+	PID2->e_sum = 0;
+	PID2->e_sumMax = MaxPIDki;
+	PID2->kp = KdValue2;
+	PID2->ki = KiValue2;
+	PID2->kd = KdValue2;
+	PID2->ValueTask = 90;
+}
+void vMotorPID_Control(MotorPID_InitTypeDef* MotorPID, Motor_InitTypeDef* Motor)
+{
+	MotorPID->e = MotorPID->ValueTask - uGetCounterTim(Motor->Tim_Encoder);
+	MotorPID->e_sum += MotorPID->e;
+	if (MotorPID->e_sum > MotorPID->e_sumMax)
+		MotorPID->e_sum = MotorPID->e_sumMax;
+
+	MotorPID->ExecutionValue = MotorPID->kp * MotorPID->e
+			+ MotorPID->ki * MotorPID->e_sum
+			+ MotorPID->kd * (MotorPID->e - MotorPID->e_last);
+
+	MotorPID->e_last = MotorPID->e;
 }

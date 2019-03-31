@@ -27,7 +27,16 @@
 
 #define Motor1_PWM TIM13
 #define Motor2_PWM TIM14
+//PID
+#define MaxPIDki 10000
+#define KpValue1	0.001
+#define KiValue1	0.05
+#define KdValue1	-0.03
 
+#define KpValue2	0.001
+#define KiValue2	0.05
+#define KdValue2	-0.03
+//END PID
 enum eBridgeControl
 {
 	BreakeHard, Back, Forward, BreakeSoft
@@ -46,7 +55,8 @@ typedef struct
 	uint32_t number_turns;
 } Motor_InitTypeDef;
 
-typedef struct{
+typedef struct
+{
 	float kp;
 	float ki;
 	float kd;
@@ -54,13 +64,18 @@ typedef struct{
 	float e_last;
 	float e_sum;
 	float e_sumMax;
-}MotorPIDRegulator_InitTypeDef;
+	float ValueTask;
+	float ExecutionValue;
+} MotorPID_InitTypeDef;
 
 uint16_t uGetCounterTim(TIM_TypeDef* tim);
-uint8_t uClearCounter(TIM_TypeDef tim);
+uint8_t uClearCounter(TIM_TypeDef* tim);
 void vMotor_Control(Motor_InitTypeDef* motor, uint8_t eBridgeControl);
 void vMotor_init(Motor_InitTypeDef* Motor_InitStruct1,
 		Motor_InitTypeDef* Motor_InitStruct2);
 void vMotor_SetPWM(Motor_InitTypeDef* motor, uint8_t dutyPWM);
-
+//PID implementation
+void vMotorPID_Control(MotorPID_InitTypeDef* MotorPID, Motor_InitTypeDef* Motor);
+void vMotorPID_init(MotorPID_InitTypeDef* PID1, MotorPID_InitTypeDef* PID2);
+//END PID
 #endif /* MOTOR_CONTROL_H_ */

@@ -20,6 +20,7 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "gfxsimulator.h"
 #include "spi.h"
 #include "tim.h"
 #include "gpio.h"
@@ -52,10 +53,21 @@ volatile uint16_t encoder_count1;
 volatile uint16_t encoder_count2;
 volatile uint16_t PWM13;
 volatile uint16_t PWM14;
+volatile uint8_t FlagPID;
+volatile uint16_t zadana;
+volatile uint16_t rzeczywista1;
+volatile uint16_t rzeczywista2;
+volatile uint32_t error1;
+volatile uint32_t error2;
+volatile float kpp;
+volatile float kdd;
+volatile float kii;
+volatile uint16_t speed;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
+static void MX_NVIC_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -74,6 +86,9 @@ int main(void)
 	/* USER CODE BEGIN 1 */
 	Motor_InitTypeDef MotorLeft;
 	Motor_InitTypeDef MotorRight;
+	MotorPID_InitTypeDef MotorPID_Left;
+	MotorPID_InitTypeDef MotorPID_Right;
+
 	/* USER CODE END 1 */
 
 	/* MCU Configuration--------------------------------------------------------*/
@@ -89,7 +104,11 @@ int main(void)
 	SystemClock_Config();
 
 	/* USER CODE BEGIN SysInit */
-
+	if (SysTick_Config(SystemCoreClock / 1000))
+	{
+		while (1)
+			;
+	}
 	/* USER CODE END SysInit */
 
 	/* Initialize all configured peripherals */
@@ -99,6 +118,11 @@ int main(void)
 	MX_TIM14_Init();
 	MX_TIM4_Init();
 	MX_TIM8_Init();
+	MX_GFXSIMULATOR_Init();
+	MX_TIM12_Init();
+
+	/* Initialize interrupts */
+	MX_NVIC_Init();
 	/* USER CODE BEGIN 2 */
 	ssd1306_init();
 	ssd1306_clear_screen(0xFF);
@@ -114,34 +138,54 @@ int main(void)
 	HAL_TIM_Encoder_Start(&htim8, TIM_CHANNEL_ALL);
 
 	vMotor_init(&MotorLeft, &MotorRight);
+	vMotorPID_init(&MotorPID_Left, &MotorPID_Right);
 
-//	vMotor_Control(&MotorLeft, Back);
-//	vMotor_Control(&MotorRight, Back);
-	vMotor_SetPWM(&MotorLeft,50);
-	vMotor_SetPWM(&MotorRight,100);
 	HAL_Delay(2000);
 	vMotor_Control(&MotorLeft, Forward);
 	vMotor_Control(&MotorRight, Forward);
-//	HAL_GPIO_WritePin(GPIO_Motor_control1_GPIO_Port,GPIO_Motor_control1_Pin,GPIO_PIN_SET);
-//	HAL_GPIO_WritePin(GPIO_Motor_control2_GPIO_Port,GPIO_Motor_control2_Pin,GPIO_PIN_RESET);
-//	HAL_GPIO_WritePin(GPIO_Motor_Control3_GPIO_Port,GPIO_Motor_Control3_Pin,GPIO_PIN_RESET);
-//	HAL_GPIO_WritePin(GPIO_Motor_Control4_GPIO_Port,GPIO_Motor_Control4_Pin,GPIO_PIN_RESET);
+
+	HAL_NVIC_EnableIRQ(TIM8_BRK_TIM12_IRQn);
+	HAL_TIM_Base_Start_IT(&htim12);
+
 	/* USER CODE END 2 */
 
 	/* Infinite loop */
 	/* USER CODE BEGIN WHILE */
 	while (1)
 	{
-		vMotor_SetPWM(&MotorLeft,80);
-		vMotor_SetPWM(&MotorRight,80);
-		HAL_Delay(10);
-		encoder_count1 = uGetCounterTim(Motor1_Encoder);
-		encoder_count2 = uGetCounterTim(Motor2_Encoder);
-		PWM13 = TIM13->CCR1 ;
-		PWM14 = TIM13->CCR1 ;
+
+//		vMotor_SetPWM(&MotorLeft, 80);
+//		vMotor_SetPWM(&MotorRight, 80);
+//		HAL_Delay(10);
+//		encoder_count1 = uGetCounterTim(Motor1_Encoder);
+//		encoder_count2 = uGetCounterTim(Motor2_Encoder);
+//		PWM13 = TIM13->CCR1;
+//		PWM14 = TIM13->CCR1;
 		/* USER CODE END WHILE */
 
 		/* USER CODE BEGIN 3 */
+		if (FlagPID >= 5)
+		{
+			FlagPID = 0;
+			vMotorPID_Control(&MotorPID_Left, &MotorLeft);
+			zadana = MotorPID_Left.ValueTask;
+			rzeczywista1 = uGetCounterTim(MotorLeft.Tim_Encoder);
+			rzeczywista2 = uGetCounterTim(MotorRight.Tim_Encoder);
+			uClearCounter(MotorLeft.Tim_Encoder);
+			error1 = MotorPID_Left.ExecutionValue;
+			MotorPID_Left.kd = MotorPID_Right.kd = kdd;
+			MotorPID_Left.ki = MotorPID_Right.ki = kii;
+			MotorPID_Left.kp = MotorPID_Right.kp = kpp;
+
+			MotorPID_Left.ValueTask = MotorPID_Right.ValueTask = speed;
+
+			vMotorPID_Control(&MotorPID_Right, &MotorRight);
+			uClearCounter(MotorRight.Tim_Encoder);
+			error2 = MotorPID_Right.ExecutionValue;
+			vMotor_SetPWM(&MotorLeft, error1);
+			vMotor_SetPWM(&MotorRight, error2);
+
+		}
 	}
 	/* USER CODE END 3 */
 }
@@ -170,16 +214,10 @@ void SystemClock_Config(void)
 	RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
 	RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
 	RCC_OscInitStruct.PLL.PLLM = 8;
-	RCC_OscInitStruct.PLL.PLLN = 180;
+	RCC_OscInitStruct.PLL.PLLN = 160;
 	RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
 	RCC_OscInitStruct.PLL.PLLQ = 4;
 	if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
-	{
-		Error_Handler();
-	}
-	/** Activate the Over-Drive mode
-	 */
-	if (HAL_PWREx_EnableOverDrive() != HAL_OK)
 	{
 		Error_Handler();
 	}
@@ -198,8 +236,23 @@ void SystemClock_Config(void)
 	}
 }
 
-/* USER CODE BEGIN 4 */
+/**
+ * @brief NVIC Configuration.
+ * @retval None
+ */
+static void MX_NVIC_Init(void)
+{
+	/* TIM8_BRK_TIM12_IRQn interrupt configuration */
+	HAL_NVIC_SetPriority(TIM8_BRK_TIM12_IRQn, 0, 0);
+	HAL_NVIC_EnableIRQ(TIM8_BRK_TIM12_IRQn);
+}
 
+/* USER CODE BEGIN 4 */
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+	if (htim->Instance == TIM12)
+		FlagPID++;
+}
 /* USER CODE END 4 */
 
 /**
