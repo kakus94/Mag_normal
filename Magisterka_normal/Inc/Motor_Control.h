@@ -29,12 +29,12 @@
 #define Motor2_PWM TIM14
 //PID
 #define MaxPIDki 10000
-#define KpValue1	0.001
-#define KiValue1	0.05
+#define KpValue1	0.5
+#define KiValue1	0.1
 #define KdValue1	-0.03
 
-#define KpValue2	0.001
-#define KiValue2	0.05
+#define KpValue2	0.5
+#define KiValue2	0.1
 #define KdValue2	-0.03
 //END PID
 enum eBridgeControl
@@ -62,7 +62,7 @@ typedef struct
 	float kd;
 	float e;
 	float e_last;
-	float e_sum;
+	uint16_t e_sum;
 	float e_sumMax;
 	float ValueTask;
 	float ExecutionValue;

@@ -83,6 +83,19 @@ void vMotor_SetPWM(Motor_InitTypeDef* motor, uint8_t dutyPWM)
 {
 	motor->dutyPWM = (motor->Tim_PWM->ARR * dutyPWM) / 100.0;
 	motor->Tim_PWM->CCR1 = motor->dutyPWM;
+
+//	motor->dutyPWM = (motor->Tim_PWM->ARR * dutyPWM) / 100.0;
+//		if (dutyPWM != 0)
+//		{
+//			motor->Tim_PWM->CCR1 = motor->dutyPWM;
+//		} else
+//		{
+//			HAL_GPIO_WritePin(motor->Motor_GPIO_int1, motor->Motor_Pin_int1,
+//					GPIO_PIN_RESET);
+//			HAL_GPIO_WritePin(motor->Motor_GPIO_int2, motor->Motor_Pin_int2,
+//					GPIO_PIN_RESET);
+//			motor->Tim_PWM->CCR1 = motor->Tim_PWM->ARR;
+//		}
 }
 
 void vMotorPID_init(MotorPID_InitTypeDef* PID1, MotorPID_InitTypeDef* PID2)
@@ -114,5 +127,9 @@ void vMotorPID_Control(MotorPID_InitTypeDef* MotorPID, Motor_InitTypeDef* Motor)
 			+ MotorPID->ki * MotorPID->e_sum
 			+ MotorPID->kd * (MotorPID->e - MotorPID->e_last);
 
-	MotorPID->e_last = MotorPID->e;
+	if (MotorPID->ValueTask == 0)
+	{
+		MotorPID->e_sum = 0;
+		MotorPID->ExecutionValue = 0;
+	}
 }

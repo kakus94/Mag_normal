@@ -62,6 +62,16 @@ void Error_Handler(void);
 #define OLED_CS_GPIO_Port GPIOG
 #define OLED_DC_Pin GPIO_PIN_3
 #define OLED_DC_GPIO_Port GPIOG
+#define LED_Control5_Pin GPIO_PIN_4
+#define LED_Control5_GPIO_Port GPIOG
+#define LED_Control4_Pin GPIO_PIN_5
+#define LED_Control4_GPIO_Port GPIOG
+#define LED_Control3_Pin GPIO_PIN_6
+#define LED_Control3_GPIO_Port GPIOG
+#define LED_Control2_Pin GPIO_PIN_7
+#define LED_Control2_GPIO_Port GPIOG
+#define LED_Control1_Pin GPIO_PIN_8
+#define LED_Control1_GPIO_Port GPIOG
 #define OLED_RES_Pin GPIO_PIN_8
 #define OLED_RES_GPIO_Port GPIOC
 #define GPIO_Motor_Control4_Pin GPIO_PIN_10

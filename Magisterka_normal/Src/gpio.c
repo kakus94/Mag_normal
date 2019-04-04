@@ -66,6 +66,14 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOG, &GPIO_InitStruct);
 
+  /*Configure GPIO pins : PGPin PGPin PGPin PGPin 
+                           PGPin */
+  GPIO_InitStruct.Pin = LED_Control5_Pin|LED_Control4_Pin|LED_Control3_Pin|LED_Control2_Pin 
+                          |LED_Control1_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOG, &GPIO_InitStruct);
+
   /*Configure GPIO pin : PtPin */
   GPIO_InitStruct.Pin = OLED_RES_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
