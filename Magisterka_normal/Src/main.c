@@ -29,6 +29,7 @@
 /* USER CODE BEGIN Includes */
 #include "SSD1306.h"
 #include "Motor_Control.h"
+#include "LED_Strip.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -49,22 +50,18 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-volatile uint16_t encoder_count1;
-volatile uint16_t encoder_count2;
-volatile uint16_t PWM13;
-volatile uint16_t PWM14;
-volatile uint8_t FlagPID;
-volatile uint16_t zadana;
-volatile float rzeczywista1;
-volatile float rzeczywista2;
+
 volatile double error1;
 volatile double error2;
-volatile float e_last;
-volatile float e_sum;
-volatile float kpp;
-volatile float kdd;
-volatile float kii;
-volatile uint16_t speed;
+volatile uint8_t FlagPID;
+volatile uint8_t FlagRead_LedStrip;
+volatile uint8_t led1;
+volatile uint8_t led2;
+volatile uint8_t led3;
+volatile uint8_t led4;
+volatile uint8_t led5;
+
+volatile int16_t speed;
 
 /* USER CODE END PV */
 
@@ -81,52 +78,54 @@ static void MX_NVIC_Init(void);
 /* USER CODE END 0 */
 
 /**
-  * @brief  The application entry point.
-  * @retval int
-  */
+ * @brief  The application entry point.
+ * @retval int
+ */
 int main(void)
 {
-  /* USER CODE BEGIN 1 */
+	/* USER CODE BEGIN 1 */
 	Motor_InitTypeDef MotorLeft;
 	Motor_InitTypeDef MotorRight;
 	MotorPID_InitTypeDef MotorPID_Left;
 	MotorPID_InitTypeDef MotorPID_Right;
+	LedStrip_InitTypeDef LedStrip;
+	LedStrip_Speed_InitTypeDef LedStrip_Speed;
 
-  /* USER CODE END 1 */
+	/* USER CODE END 1 */
 
-  /* MCU Configuration--------------------------------------------------------*/
+	/* MCU Configuration--------------------------------------------------------*/
 
-  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-  HAL_Init();
+	/* Reset of all peripherals, Initializes the Flash interface and the Systick. */
+	HAL_Init();
 
-  /* USER CODE BEGIN Init */
+	/* USER CODE BEGIN Init */
 
-  /* USER CODE END Init */
+	/* USER CODE END Init */
 
-  /* Configure the system clock */
-  SystemClock_Config();
+	/* Configure the system clock */
+	SystemClock_Config();
 
-  /* USER CODE BEGIN SysInit */
+	/* USER CODE BEGIN SysInit */
 	if (SysTick_Config(SystemCoreClock / 1000))
 	{
 		while (1)
 			;
 	}
-  /* USER CODE END SysInit */
+	/* USER CODE END SysInit */
 
-  /* Initialize all configured peripherals */
-  MX_GPIO_Init();
-  MX_SPI3_Init();
-  MX_TIM13_Init();
-  MX_TIM14_Init();
-  MX_TIM4_Init();
-  MX_TIM8_Init();
-  MX_GFXSIMULATOR_Init();
-  MX_TIM12_Init();
+	/* Initialize all configured peripherals */
+	MX_GPIO_Init();
+	MX_SPI3_Init();
+	MX_TIM13_Init();
+	MX_TIM14_Init();
+	MX_TIM4_Init();
+	MX_TIM8_Init();
+	MX_GFXSIMULATOR_Init();
+	MX_TIM12_Init();
 
-  /* Initialize interrupts */
-  MX_NVIC_Init();
-  /* USER CODE BEGIN 2 */
+	/* Initialize interrupts */
+	MX_NVIC_Init();
+	/* USER CODE BEGIN 2 */
 	ssd1306_init();
 	ssd1306_clear_screen(0xFF);
 	HAL_Delay(1000);
@@ -150,22 +149,42 @@ int main(void)
 	HAL_NVIC_EnableIRQ(TIM8_BRK_TIM12_IRQn);
 	HAL_TIM_Base_Start_IT(&htim12);
 
-  /* USER CODE END 2 */
+	/* USER CODE END 2 */
 
-  /* Infinite loop */
-  /* USER CODE BEGIN WHILE */
+	/* Infinite loop */
+	/* USER CODE BEGIN WHILE */
 	while (1)
 	{
-    /* USER CODE END WHILE */
 
-    /* USER CODE BEGIN 3 */
+		/* USER CODE END WHILE */
+
+		/* USER CODE BEGIN 3 */
+		if (FlagRead_LedStrip >= 50)
+		{
+			FlagRead_LedStrip = 0;
+			vLedStrip_ReadStatus(&LedStrip);
+			LedStrip_Speed = vLed_control(&LedStrip);
+			if ((speed + LedStrip_Speed.LeftSpeed) >= 0)
+			{
+				MotorPID_Left.ValueTask = speed + LedStrip_Speed.LeftSpeed;
+			} else
+			{
+				MotorPID_Left.ValueTask = 0;
+			}
+			if ((speed + LedStrip_Speed.RightSpeed) >= 0)
+			{
+				MotorPID_Right.ValueTask = speed + LedStrip_Speed.RightSpeed;
+			} else
+			{
+				MotorPID_Right.ValueTask = 0;
+			}
+		}
+
 		if (FlagPID >= 5)
 		{
 			FlagPID = 0;
 			vMotorPID_Control(&MotorPID_Left, &MotorLeft);
 			vMotorPID_Control(&MotorPID_Right, &MotorRight);
-
-			MotorPID_Left.ValueTask = MotorPID_Right.ValueTask = speed;
 
 			error1 = MotorPID_Left.ExecutionValue;
 			error2 = MotorPID_Right.ExecutionValue;
@@ -177,61 +196,64 @@ int main(void)
 			uClearCounter(MotorRight.Tim_Encoder);
 		}
 	}
-  /* USER CODE END 3 */
+	/* USER CODE END 3 */
 }
 
 /**
-  * @brief System Clock Configuration
-  * @retval None
-  */
+ * @brief System Clock Configuration
+ * @retval None
+ */
 void SystemClock_Config(void)
 {
-  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
-  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+	RCC_OscInitTypeDef RCC_OscInitStruct =
+	{ 0 };
+	RCC_ClkInitTypeDef RCC_ClkInitStruct =
+	{ 0 };
 
-  /** Configure the main internal regulator output voltage 
-  */
-  __HAL_RCC_PWR_CLK_ENABLE();
-  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
-  /** Initializes the CPU, AHB and APB busses clocks 
-  */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
-  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
-  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
-  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
-  RCC_OscInitStruct.PLL.PLLM = 8;
-  RCC_OscInitStruct.PLL.PLLN = 160;
-  RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
-  RCC_OscInitStruct.PLL.PLLQ = 4;
-  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /** Initializes the CPU, AHB and APB busses clocks 
-  */
-  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
-                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
-  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
-  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV4;
-  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2;
+	/** Configure the main internal regulator output voltage
+	 */
+	__HAL_RCC_PWR_CLK_ENABLE()
+	;
+	__HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
+	/** Initializes the CPU, AHB and APB busses clocks
+	 */
+	RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
+	RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+	RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
+	RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+	RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
+	RCC_OscInitStruct.PLL.PLLM = 8;
+	RCC_OscInitStruct.PLL.PLLN = 160;
+	RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
+	RCC_OscInitStruct.PLL.PLLQ = 4;
+	if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+	{
+		Error_Handler();
+	}
+	/** Initializes the CPU, AHB and APB busses clocks
+	 */
+	RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK
+			| RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
+	RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+	RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+	RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV4;
+	RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_5) != HAL_OK)
-  {
-    Error_Handler();
-  }
+	if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_5) != HAL_OK)
+	{
+		Error_Handler();
+	}
 }
 
 /**
-  * @brief NVIC Configuration.
-  * @retval None
-  */
+ * @brief NVIC Configuration.
+ * @retval None
+ */
 static void MX_NVIC_Init(void)
 {
-  /* TIM8_BRK_TIM12_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(TIM8_BRK_TIM12_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ(TIM8_BRK_TIM12_IRQn);
+	/* TIM8_BRK_TIM12_IRQn interrupt configuration */
+	HAL_NVIC_SetPriority(TIM8_BRK_TIM12_IRQn, 0, 0);
+	HAL_NVIC_EnableIRQ(TIM8_BRK_TIM12_IRQn);
 }
 
 /* USER CODE BEGIN 4 */
@@ -239,35 +261,36 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
 	if (htim->Instance == TIM12)
 		FlagPID++;
+	FlagRead_LedStrip++;
 }
 /* USER CODE END 4 */
 
 /**
-  * @brief  This function is executed in case of error occurrence.
-  * @retval None
-  */
+ * @brief  This function is executed in case of error occurrence.
+ * @retval None
+ */
 void Error_Handler(void)
 {
-  /* USER CODE BEGIN Error_Handler_Debug */
+	/* USER CODE BEGIN Error_Handler_Debug */
 	/* User can add his own implementation to report the HAL error return state */
 
-  /* USER CODE END Error_Handler_Debug */
+	/* USER CODE END Error_Handler_Debug */
 }
 
 #ifdef  USE_FULL_ASSERT
 /**
-  * @brief  Reports the name of the source file and the source line number
-  *         where the assert_param error has occurred.
-  * @param  file: pointer to the source file name
-  * @param  line: assert_param error line source number
-  * @retval None
-  */
+ * @brief  Reports the name of the source file and the source line number
+ *         where the assert_param error has occurred.
+ * @param  file: pointer to the source file name
+ * @param  line: assert_param error line source number
+ * @retval None
+ */
 void assert_failed(uint8_t *file, uint32_t line)
-{ 
-  /* USER CODE BEGIN 6 */
+{
+	/* USER CODE BEGIN 6 */
 	/* User can add his own implementation to report the file name and line number,
 	 tex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
-  /* USER CODE END 6 */
+	/* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */
 

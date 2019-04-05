@@ -29,11 +29,11 @@
 #define Motor2_PWM TIM14
 //PID
 #define MaxPIDki 10000
-#define KpValue1	0.5
+#define KpValue1	3
 #define KiValue1	0.1
 #define KdValue1	-0.03
 
-#define KpValue2	0.5
+#define KpValue2	3
 #define KiValue2	0.1
 #define KdValue2	-0.03
 //END PID
