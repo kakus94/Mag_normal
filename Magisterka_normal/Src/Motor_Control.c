@@ -10,7 +10,7 @@ uint16_t uGetCounterTim(TIM_TypeDef* tim)
 {
 	return tim->CNT;
 }
-uint8_t uClearCounter(TIM_TypeDef* tim)
+void vClearCounter(TIM_TypeDef* tim)
 {
 	tim->CNT = 0;
 
@@ -118,7 +118,14 @@ void vMotorPID_init(MotorPID_InitTypeDef* PID1, MotorPID_InitTypeDef* PID2)
 }
 void vMotorPID_Control(MotorPID_InitTypeDef* MotorPID, Motor_InitTypeDef* Motor)
 {
-	MotorPID->e = MotorPID->ValueTask - uGetCounterTim(Motor->Tim_Encoder);
+	uint16_t encoderCounter = uGetCounterTim(Motor->Tim_Encoder);
+	if (encoderCounter < 500)
+	{
+		MotorPID->e = MotorPID->ValueTask - encoderCounter;
+	} else
+	{
+		MotorPID->e = MotorPID->ValueTask - (1000 - encoderCounter);
+	}
 	MotorPID->e_sum += MotorPID->e;
 	if (MotorPID->e_sum > MotorPID->e_sumMax)
 		MotorPID->e_sum = MotorPID->e_sumMax;
@@ -131,5 +138,39 @@ void vMotorPID_Control(MotorPID_InitTypeDef* MotorPID, Motor_InitTypeDef* Motor)
 	{
 		MotorPID->e_sum = 0;
 		MotorPID->ExecutionValue = 0;
+	}
+}
+
+void vMotorAction_LedStrip(Motor_InitTypeDef* LeftMotor,
+		Motor_InitTypeDef* RightMotor, uint8_t action)
+{
+	switch (action)
+	{
+	case rotationInPlace_Left:
+		vMotor_Control(LeftMotor,Back);
+		vMotor_Control(RightMotor,Forward);
+		break;
+	case rotationInPlace_Right:
+		vMotor_Control(LeftMotor,Forward);
+		vMotor_Control(RightMotor,Back);
+			break;
+	case turn_Left:
+		vMotor_Control(LeftMotor,BreakeSoft);
+		vMotor_Control(RightMotor,Forward);
+			break;
+	case turn_Right:
+		vMotor_Control(LeftMotor,Forward);
+		vMotor_Control(RightMotor,BreakeSoft);
+			break;
+	case move_Back:
+		vMotor_Control(LeftMotor,Back);
+		vMotor_Control(RightMotor,Back);
+			break;
+	case move_Forward:
+		vMotor_Control(LeftMotor,Forward);
+		vMotor_Control(RightMotor,Forward);
+			break;
+	default:
+		break;
 	}
 }

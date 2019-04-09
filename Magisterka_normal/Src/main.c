@@ -62,6 +62,8 @@ volatile uint8_t led4;
 volatile uint8_t led5;
 
 volatile int16_t speed;
+volatile MotorPID_InitTypeDef MotorPID_Left;
+volatile MotorPID_InitTypeDef MotorPID_Right;
 
 /* USER CODE END PV */
 
@@ -84,10 +86,8 @@ static void MX_NVIC_Init(void);
 int main(void)
 {
 	/* USER CODE BEGIN 1 */
-	Motor_InitTypeDef MotorLeft;
 	Motor_InitTypeDef MotorRight;
-	MotorPID_InitTypeDef MotorPID_Left;
-	MotorPID_InitTypeDef MotorPID_Right;
+	Motor_InitTypeDef MotorLeft;
 	LedStrip_InitTypeDef LedStrip;
 	LedStrip_Speed_InitTypeDef LedStrip_Speed;
 
@@ -134,6 +134,8 @@ int main(void)
 	printf("Start\n");
 	ITM_SendChar('A');
 
+	vLedStrip_Init(&LedStrip);
+
 	HAL_TIM_PWM_Start(&htim13, TIM_CHANNEL_1);
 	HAL_TIM_PWM_Start(&htim14, TIM_CHANNEL_1);
 	HAL_TIM_Encoder_Start(&htim4, TIM_CHANNEL_ALL);
@@ -143,22 +145,29 @@ int main(void)
 	vMotorPID_init(&MotorPID_Left, &MotorPID_Right);
 
 	HAL_Delay(2000);
+	vMotor_SetPWM(&MotorLeft, 75);
+	vMotor_SetPWM(&MotorRight, 75);
+//	HAL_GPIO_WritePin(GPIO_Motor_control1_GPIO_Port,GPIO_Motor_control1_Pin,SET);  //P
+//	HAL_GPIO_WritePin(GPIO_Motor_control2_GPIO_Port,GPIO_Motor_control2_Pin,SET); //L
+//	HAL_GPIO_WritePin(GPIO_Motor_Control3_GPIO_Port,GPIO_Motor_Control3_Pin,SET); //L
+//	HAL_GPIO_WritePin(GPIO_Motor_Control4_GPIO_Port,GPIO_Motor_Control4_Pin,SET); //P
 	vMotor_Control(&MotorLeft, Forward);
-	vMotor_Control(&MotorRight, Forward);
+	vMotor_Control(&MotorRight, Back);
 
 	HAL_NVIC_EnableIRQ(TIM8_BRK_TIM12_IRQn);
 	HAL_TIM_Base_Start_IT(&htim12);
 
+	MotorPID_Left.ValueTask = MotorPID_Right.ValueTask = 0;
 	/* USER CODE END 2 */
 
 	/* Infinite loop */
 	/* USER CODE BEGIN WHILE */
 	while (1)
 	{
-
 		/* USER CODE END WHILE */
 
 		/* USER CODE BEGIN 3 */
+
 		if (FlagRead_LedStrip >= 50)
 		{
 			FlagRead_LedStrip = 0;
@@ -178,6 +187,7 @@ int main(void)
 			{
 				MotorPID_Right.ValueTask = 0;
 			}
+			vMotorAction_LedStrip(&MotorLeft,&MotorRight,LedStrip_Speed.Action);
 		}
 
 		if (FlagPID >= 5)
@@ -192,8 +202,9 @@ int main(void)
 			vMotor_SetPWM(&MotorLeft, error1);
 			vMotor_SetPWM(&MotorRight, error2);
 
-			uClearCounter(MotorLeft.Tim_Encoder);
-			uClearCounter(MotorRight.Tim_Encoder);
+			vClearCounter(MotorLeft.Tim_Encoder);
+			vClearCounter(MotorRight.Tim_Encoder);
+
 		}
 	}
 	/* USER CODE END 3 */

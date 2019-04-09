@@ -13,14 +13,14 @@
 #define Motor_GPIO_pin1	GPIO_Motor_control1_GPIO_Port
 #define Motor_Pin1		GPIO_Motor_control1_Pin
 
-#define Motor_GPIO_pin2	GPIO_Motor_Control3_GPIO_Port
-#define Motor_Pin2		GPIO_Motor_Control3_Pin
+#define Motor_GPIO_pin2	GPIO_Motor_Control4_GPIO_Port
+#define Motor_Pin2		GPIO_Motor_Control4_Pin
 
 #define Motor_GPIO_pin3	GPIO_Motor_control2_GPIO_Port
 #define Motor_Pin3		GPIO_Motor_control2_Pin
 
-#define Motor_GPIO_pin4	GPIO_Motor_Control4_GPIO_Port
-#define Motor_Pin4		GPIO_Motor_Control4_Pin
+#define Motor_GPIO_pin4	GPIO_Motor_Control3_GPIO_Port
+#define Motor_Pin4		GPIO_Motor_Control3_Pin
 
 #define Motor1_Encoder TIM4
 #define Motor2_Encoder TIM8
@@ -30,16 +30,26 @@
 //PID
 #define MaxPIDki 10000
 #define KpValue1	3
-#define KiValue1	0.1
+#define KiValue1	0.5
 #define KdValue1	-0.03
 
 #define KpValue2	3
-#define KiValue2	0.1
+#define KiValue2	0.5
 #define KdValue2	-0.03
 //END PID
 enum eBridgeControl
 {
 	BreakeHard, Back, Forward, BreakeSoft
+};
+
+enum eActionReaction
+{
+	rotationInPlace_Left,
+	rotationInPlace_Right,
+	turn_Left,
+	turn_Right,
+	move_Back,
+	move_Forward
 };
 
 typedef struct
@@ -69,11 +79,12 @@ typedef struct
 } MotorPID_InitTypeDef;
 
 uint16_t uGetCounterTim(TIM_TypeDef* tim);
-uint8_t uClearCounter(TIM_TypeDef* tim);
+void vClearCounter(TIM_TypeDef* tim);
 void vMotor_Control(Motor_InitTypeDef* motor, uint8_t eBridgeControl);
 void vMotor_init(Motor_InitTypeDef* Motor_InitStruct1,
 		Motor_InitTypeDef* Motor_InitStruct2);
 void vMotor_SetPWM(Motor_InitTypeDef* motor, uint8_t dutyPWM);
+void vMotorAction_LedStrip(Motor_InitTypeDef* LeftMotor,Motor_InitTypeDef* RightMotor, uint8_t action);
 //PID implementation
 void vMotorPID_Control(MotorPID_InitTypeDef* MotorPID, Motor_InitTypeDef* Motor);
 void vMotorPID_init(MotorPID_InitTypeDef* PID1, MotorPID_InitTypeDef* PID2);

@@ -10,14 +10,14 @@
 
 #include "main.h"
 
-/*           LED STRIP
+/*              LED STRIP
  * **************************************
  * * LED1    LED2   LED3   LED4   LED5  *
  * **************************************
  * */
 
-#define Led1_Gpio 	LED_Control5_GPIO_Port
-#define Led1_Pin 	LED_Control5_Pin
+#define Led1_Gpio 	LED_Control2_GPIO_Port
+#define Led1_Pin 	LED_Control2_Pin
 
 #define Led2_Gpio 	LED_Control3_GPIO_Port
 #define Led2_Pin 	LED_Control3_Pin
@@ -25,11 +25,11 @@
 #define Led3_Gpio 	LED_Control4_GPIO_Port
 #define Led3_Pin 	LED_Control4_Pin
 
-#define Led4_Gpio  	LED_Control1_GPIO_Port
-#define Led4_Pin 	LED_Control1_Pin
+#define Led4_Gpio  	LED_Control5_GPIO_Port
+#define Led4_Pin 	LED_Control5_Pin
 
-#define Led5_Gpio 	LED_Control2_GPIO_Port
-#define Led5_Pin    LED_Control2_Pin
+#define Led5_Gpio 	LED_Control1_GPIO_Port
+#define Led5_Pin    LED_Control1_Pin
 
 #define size 10
 
@@ -45,7 +45,9 @@ enum
 	LS_01100 = 0x13,
 	LS_01000 = 0x17,
 	LS_11000 = 0x03,
-	LS_10000 = 0x0F
+	LS_10000 = 0x0F,
+	LS_miss_L = 0xF0,
+	LS_miss_R = 0xF1
 } LedStrip_StatusPinEnum;
 
 typedef struct
@@ -73,10 +75,12 @@ typedef struct
 {
 	int8_t LeftSpeed;
 	int8_t RightSpeed;
+	uint8_t Action;
 
 } LedStrip_Speed_InitTypeDef;
 
 void vLedStrip_ReadStatus(LedStrip_InitTypeDef* LedStript);
 LedStrip_Speed_InitTypeDef vLed_control(LedStrip_InitTypeDef* LedStript);
+void vLedStrip_Init(LedStrip_InitTypeDef* ledStrip_InitTypeDef);
 
 #endif /* LED_STRIP_H_ */
