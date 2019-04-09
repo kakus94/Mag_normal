@@ -67,7 +67,6 @@ typedef struct
 			uint8_t Led5_StatusPin :1;
 			uint8_t unused :3;
 		};
-
 	};
 } LedStrip_InitTypeDef;
 

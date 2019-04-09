@@ -577,14 +577,13 @@ void SSD1306_WRITE_BYTE(uint8_t DATA)
 
 void ssd1306_hello_word()
 {
-	ssd1306_draw_bitmap(30, 30, (uint8_t* )c_chBmp4016, 40, 16);
-	/*
-	//ssd1306_display_string(0, 0, (uint8_t *) "System Init OK", 16, 0);
+	//ssd1306_draw_bitmap(30, 30, (uint8_t* )c_chBmp4016, 40, 16);
+
+	ssd1306_display_string(0, 0, (uint8_t *) "System Init OK", 16, 0);
 	ssd1306_refresh_gram();
 	HAL_Delay(1000);
 	ssd1306_display_string(0, 0, (uint8_t *) "Praca Magisterska", 12, 1);
-	//ssd1306_display_string(10, 16, (uint8_t *) "Kamil Karpiak", 14, 1);
-	 * */
+	ssd1306_display_string(10, 16, (uint8_t *) "Kamil Karpiak", 14, 1);
 	ssd1306_refresh_gram();
 
 }
