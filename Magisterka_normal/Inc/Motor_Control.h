@@ -80,7 +80,7 @@ typedef struct
 } MotorPID_InitTypeDef;
 
 uint16_t uGetCounterTim(TIM_TypeDef* tim);
-void vClearCounter(TIM_TypeDef* tim);
+HAL_StatusTypeDef vClearCounter(TIM_TypeDef* tim);
 void vMotor_Control(Motor_InitTypeDef* motor, uint8_t eBridgeControl);
 void vMotor_init(Motor_InitTypeDef* Motor_InitStruct1,
     Motor_InitTypeDef* Motor_InitStruct2);

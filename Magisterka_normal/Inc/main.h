@@ -58,6 +58,12 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define RFID_IRQ_Pin GPIO_PIN_5
+#define RFID_IRQ_GPIO_Port GPIOF
+#define RFID_RESET_Pin GPIO_PIN_4
+#define RFID_RESET_GPIO_Port GPIOC
+#define SPI_RFID_CS_Pin GPIO_PIN_1
+#define SPI_RFID_CS_GPIO_Port GPIOB
 #define OLED_CS_Pin GPIO_PIN_2
 #define OLED_CS_GPIO_Port GPIOG
 #define OLED_DC_Pin GPIO_PIN_3
