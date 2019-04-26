@@ -30,6 +30,8 @@ void vMotor_init(Motor_InitTypeDef* Motor_InitStruct1,
   Motor_InitStruct1->speed = 0;
   Motor_InitStruct1->Tim_Encoder = MotorLeft_Encoder;
   Motor_InitStruct1->Tim_PWM = MotorLeft_PWM;
+  Motor_InitStruct1->clear_PID =0;
+
 
   Motor_InitStruct2->Motor_GPIO_int1 = MotorRight_GPIO_pin1;
   Motor_InitStruct2->Motor_GPIO_int2 = MotorRight_GPIO_pin2;
@@ -39,6 +41,7 @@ void vMotor_init(Motor_InitTypeDef* Motor_InitStruct1,
   Motor_InitStruct2->speed = 0;
   Motor_InitStruct2->Tim_Encoder = MotorRight_Encoder;
   Motor_InitStruct2->Tim_PWM = MotorRight_PWM;
+  Motor_InitStruct2->clear_PID =0;
 }
 
 void vMotor_Control(Motor_InitTypeDef* motor, uint8_t eBridgeControl) {
@@ -86,7 +89,7 @@ void vMotorPID_init(MotorPID_InitTypeDef* PID1, MotorPID_InitTypeDef* PID2) {
   PID1->e_last = 0;
   PID1->e_sum = 0;
   PID1->e_sumMax = MaxPIDki;
-  PID1->kp = KdValue1;
+  PID1->kp = KpValue1;
   PID1->ki = KiValue1;
   PID1->kd = KdValue1;
   PID1->ValueTask = 90;
@@ -94,13 +97,20 @@ void vMotorPID_init(MotorPID_InitTypeDef* PID1, MotorPID_InitTypeDef* PID2) {
   PID2->e_last = 0;
   PID2->e_sum = 0;
   PID2->e_sumMax = MaxPIDki;
-  PID2->kp = KdValue2;
+  PID2->kp = KpValue2;
   PID2->ki = KiValue2;
   PID2->kd = KdValue2;
   PID2->ValueTask = 90;
 }
 
 void vMotorPID_Control(MotorPID_InitTypeDef* MotorPID, Motor_InitTypeDef* Motor) {
+
+  if(Motor->clear_PID == 1)
+  {
+    Motor->clear_PID = 0;
+    MotorPID->e_sum = 0;
+  }
+
   uint16_t encoderCounter = uGetCounterTim(Motor->Tim_Encoder);
   if (encoderCounter < 500)
   {

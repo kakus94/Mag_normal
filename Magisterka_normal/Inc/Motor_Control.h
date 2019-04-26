@@ -64,6 +64,7 @@ typedef struct
   uint8_t speed;
   uint32_t dutyPWM;
   uint32_t number_turns;
+  uint8_t clear_PID;
 } Motor_InitTypeDef;
 
 typedef struct
@@ -77,6 +78,7 @@ typedef struct
   float e_sumMax;
   float ValueTask;
   float ExecutionValue;
+
 } MotorPID_InitTypeDef;
 
 uint16_t uGetCounterTim(TIM_TypeDef* tim);

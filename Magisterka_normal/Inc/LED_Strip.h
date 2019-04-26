@@ -44,7 +44,7 @@ enum
 	LS_00100 = 0x1B,
 	LS_01100 = 0x13,
 	LS_01000 = 0x17,
-	LS_11000 = 0x03,
+	LS_11000 = 0x07,
 	LS_10000 = 0x0F,
 	LS_miss_L = 0xF0,
 	LS_miss_R = 0xF1

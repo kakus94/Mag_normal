@@ -23,6 +23,7 @@
 #include "gfxsimulator.h"
 #include "spi.h"
 #include "tim.h"
+#include "usart.h"
 #include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
@@ -55,8 +56,9 @@
 volatile double error1;
 volatile double error2;
 volatile uint8_t FlagPID;
+volatile uint16_t Flag_read_card;
 volatile uint8_t FlagRead_LedStrip;
-volatile int16_t speed;
+volatile int16_t speed = 5;
 
 // variable RFID
 unsigned char CardID[4];
@@ -77,7 +79,13 @@ static void MX_NVIC_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
+Motor_InitTypeDef MotorRight;
+ Motor_InitTypeDef MotorLeft;
+ MotorPID_InitTypeDef MotorPID_Left;
+ MotorPID_InitTypeDef MotorPID_Right;
+ LedStrip_InitTypeDef LedStrip;
+ LedStrip_Speed_InitTypeDef LedStrip_Speed;
+ volatile uint8_t watek1,watek2,watek3;
 /* USER CODE END 0 */
 
 /**
@@ -87,12 +95,7 @@ static void MX_NVIC_Init(void);
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-  Motor_InitTypeDef MotorRight;
-  Motor_InitTypeDef MotorLeft;
-  MotorPID_InitTypeDef MotorPID_Left;
-  MotorPID_InitTypeDef MotorPID_Right;
-  LedStrip_InitTypeDef LedStrip;
-  LedStrip_Speed_InitTypeDef LedStrip_Speed;
+
 
   /* USER CODE END 1 */
 
@@ -123,9 +126,10 @@ int main(void)
   MX_TIM14_Init();
   MX_TIM4_Init();
   MX_TIM8_Init();
-  MX_GFXSIMULATOR_Init();
   MX_TIM12_Init();
   MX_SPI2_Init();
+  MX_USART1_UART_Init();
+  MX_GFXSIMULATOR_Init();
 
   /* Initialize interrupts */
   MX_NVIC_Init();
@@ -156,7 +160,7 @@ int main(void)
 
   MotorPID_Left.ValueTask = MotorPID_Right.ValueTask = 0;
 
-  HAL_GPIO_WritePin(RFID_RESET_GPIO_Port,RFID_RESET_Pin,SET);
+  HAL_GPIO_WritePin(RFID_RESET_GPIO_Port, RFID_RESET_Pin, SET);
 
   MFRC522_Init();
   printf("MFRC522_Init\n\r");
@@ -170,62 +174,77 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+//////////////////////CLOSE_READ_RFID////////////////////////////////
+
+
+////////END///////////CLOSE_READ_RFID///////////END/////////////////
 
 ////////////////RFID///////////////////////
-    if (MFRC522_Check(CardID) == MI_OK)
+    if (Flag_read_card > 250)
     {
-      printf("[%02x-%02x-%02x-%02x] \r\n", CardID[0], CardID[1], CardID[2],
-          CardID[3]);
-    } else
-    {
-      printf("Nie wykryto karty \r\n");
+      watek1 =1;
+      Flag_read_card = 0;
+      if (MFRC522_Check(CardID) == MI_OK)
+      {
+        printf("[%02x-%02x-%02x-%02x] \r\n", CardID[0], CardID[1], CardID[2],
+            CardID[3]);
+        for (int var = 0; var < 15; ++var) {
+          HAL_GPIO_TogglePin(BUZZER_GPIO_Port,BUZZER_Pin);
+          HAL_Delay(5);
+        }
+        HAL_GPIO_WritePin(BUZZER_GPIO_Port,BUZZER_Pin,SET);
+      } else
+      {
+        printf("Nie wykryto karty \r\n");
+      }
+      watek1 =0;
     }
-//    HAL_GPIO_WritePin(SPI_RFID_CS_GPIO_Port,SPI_RFID_CS_Pin,RESET);
-//    HAL_SPI_Transmit(&hspi2,(uint8_t*)"hello",5,1000);
-//    HAL_GPIO_WritePin(SPI_RFID_CS_GPIO_Port,SPI_RFID_CS_Pin,SET);
-
-    HAL_Delay(1000);
 
 ////////////////RFID_END///////////////////////
 
-//    if (FlagRead_LedStrip >= 50)
-//    {
-//      FlagRead_LedStrip = 0;
-//      vLedStrip_ReadStatus(&LedStrip);
-//      LedStrip_Speed = vLed_control(&LedStrip);
-//      if ((speed + LedStrip_Speed.LeftSpeed) >= 0)
-//      {
-//        MotorPID_Left.ValueTask = speed + LedStrip_Speed.LeftSpeed;
-//      } else
-//      {
-//        MotorPID_Left.ValueTask = 0;
-//      }
-//      if ((speed + LedStrip_Speed.RightSpeed) >= 0)
-//      {
-//        MotorPID_Right.ValueTask = speed + LedStrip_Speed.RightSpeed;
-//      } else
-//      {
-//        MotorPID_Right.ValueTask = 0;
-//      }
-//      vMotorAction_LedStrip(&MotorLeft, &MotorRight, LedStrip_Speed.Action);
-//    }
-//
-//    if (FlagPID >= 5)
-//    {
-//      FlagPID = 0;
-//      vMotorPID_Control(&MotorPID_Left, &MotorLeft);
-//      vMotorPID_Control(&MotorPID_Right, &MotorRight);
-//
-//      error1 = MotorPID_Left.ExecutionValue;
-//      error2 = MotorPID_Right.ExecutionValue;
-//
-//      vMotor_SetPWM(&MotorLeft, error1);
-//      vMotor_SetPWM(&MotorRight, error2);
-//
-//      vClearCounter(MotorLeft.Tim_Encoder);
-//      vClearCounter(MotorRight.Tim_Encoder);
-//
-//    }
+    if (FlagRead_LedStrip >= 10)
+    {
+      watek2 =1;
+      FlagRead_LedStrip = 0;
+      vLedStrip_ReadStatus(&LedStrip);
+      LedStrip_Speed = vLed_control(&LedStrip);
+      if ((speed + LedStrip_Speed.LeftSpeed) >= 0)
+      {
+        MotorPID_Left.ValueTask = speed + LedStrip_Speed.LeftSpeed;
+      } else
+      {
+        MotorPID_Left.ValueTask = 0;
+      }
+      if ((speed + LedStrip_Speed.RightSpeed) >= 0)
+      {
+        MotorPID_Right.ValueTask = speed + LedStrip_Speed.RightSpeed;
+      } else
+      {
+        MotorPID_Right.ValueTask = 0;
+      }
+      vMotorAction_LedStrip(&MotorLeft, &MotorRight, LedStrip_Speed.Action);
+
+      watek2 =0;
+    }
+
+    if (FlagPID >= 10)
+    {
+      watek3 =1;
+      FlagPID = 0;
+      vMotorPID_Control(&MotorPID_Left, &MotorLeft);
+      vMotorPID_Control(&MotorPID_Right, &MotorRight);
+
+      error1 = MotorPID_Left.ExecutionValue;
+      error2 = MotorPID_Right.ExecutionValue;
+
+      vMotor_SetPWM(&MotorLeft, error1);
+      vMotor_SetPWM(&MotorRight, error2);
+
+      vClearCounter(MotorLeft.Tim_Encoder);
+      vClearCounter(MotorRight.Tim_Encoder);
+
+      watek3 =0;
+    }
   }
   /* USER CODE END 3 */
 }
@@ -293,6 +312,7 @@ static void MX_NVIC_Init(void)
 /* USER CODE BEGIN 4 */
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
   if (htim->Instance == TIM12)
+    Flag_read_card++;
     FlagPID++;
   FlagRead_LedStrip++;
 }

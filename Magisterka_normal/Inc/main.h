@@ -80,6 +80,8 @@ void Error_Handler(void);
 #define LED_Control1_GPIO_Port GPIOG
 #define OLED_RES_Pin GPIO_PIN_8
 #define OLED_RES_GPIO_Port GPIOC
+#define BUZZER_Pin GPIO_PIN_9
+#define BUZZER_GPIO_Port GPIOC
 #define GPIO_Motor_Control4_Pin GPIO_PIN_10
 #define GPIO_Motor_Control4_GPIO_Port GPIOG
 #define GPIO_Motor_control2_Pin GPIO_PIN_11
