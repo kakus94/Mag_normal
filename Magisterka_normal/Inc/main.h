@@ -32,7 +32,10 @@ extern "C" {
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+volatile uint16_t Flag_Close_RFID;
+volatile uint8_t Semaphor_CloseRFID;
+volatile uint8_t Semaphor_NoReadRFID;
+volatile uint8_t Count_NoReadRFID;
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/

@@ -79,7 +79,7 @@ typedef struct
 } LedStrip_Speed_InitTypeDef;
 
 void vLedStrip_ReadStatus(LedStrip_InitTypeDef* LedStript);
-LedStrip_Speed_InitTypeDef vLed_control(LedStrip_InitTypeDef* LedStript);
+LedStrip_Speed_InitTypeDef vLed_control(LedStrip_InitTypeDef* LedStript,uint8_t tryb);
 void vLedStrip_Init(LedStrip_InitTypeDef* ledStrip_InitTypeDef);
 
 #endif /* LED_STRIP_H_ */

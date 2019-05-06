@@ -58,6 +58,9 @@ volatile double error2;
 volatile uint8_t FlagPID;
 volatile uint16_t Flag_read_card;
 volatile uint8_t FlagRead_LedStrip;
+
+
+
 volatile int16_t speed = 5;
 
 // variable RFID
@@ -80,22 +83,20 @@ static void MX_NVIC_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 Motor_InitTypeDef MotorRight;
- Motor_InitTypeDef MotorLeft;
- MotorPID_InitTypeDef MotorPID_Left;
- MotorPID_InitTypeDef MotorPID_Right;
- LedStrip_InitTypeDef LedStrip;
- LedStrip_Speed_InitTypeDef LedStrip_Speed;
- volatile uint8_t watek1,watek2,watek3;
+Motor_InitTypeDef MotorLeft;
+MotorPID_InitTypeDef MotorPID_Left;
+MotorPID_InitTypeDef MotorPID_Right;
+LedStrip_InitTypeDef LedStrip;
+LedStrip_Speed_InitTypeDef LedStrip_Speed;
+volatile uint8_t watek1, watek2, watek3;
 /* USER CODE END 0 */
 
 /**
-  * @brief  The application entry point.
-  * @retval int
-  */
-int main(void)
-{
+ * @brief  The application entry point.
+ * @retval int
+ */
+int main(void) {
   /* USER CODE BEGIN 1 */
-
 
   /* USER CODE END 1 */
 
@@ -175,39 +176,48 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 //////////////////////CLOSE_READ_RFID////////////////////////////////
-
-
+    if (Flag_Close_RFID > 5000)
+    {
+      Flag_Close_RFID = 0 ;
+      Semaphor_CloseRFID = 0 ;
+      Semaphor_NoReadRFID = 1 ;
+      Count_NoReadRFID++;
+    }
 ////////END///////////CLOSE_READ_RFID///////////END/////////////////
-
 ////////////////RFID///////////////////////
     if (Flag_read_card > 250)
     {
-      watek1 =1;
+      watek1 = 1;
       Flag_read_card = 0;
       if (MFRC522_Check(CardID) == MI_OK)
       {
+        Semaphor_CloseRFID = 0;
+        Count_NoReadRFID =0 ;
+        Semaphor_NoReadRFID = 0 ;
+        Flag_Close_RFID = 0;
         printf("[%02x-%02x-%02x-%02x] \r\n", CardID[0], CardID[1], CardID[2],
             CardID[3]);
-        for (int var = 0; var < 15; ++var) {
-          HAL_GPIO_TogglePin(BUZZER_GPIO_Port,BUZZER_Pin);
+        for (int var = 0; var < 15; ++var)
+        {
+          HAL_GPIO_TogglePin(BUZZER_GPIO_Port, BUZZER_Pin);
           HAL_Delay(5);
         }
-        HAL_GPIO_WritePin(BUZZER_GPIO_Port,BUZZER_Pin,SET);
+        HAL_GPIO_WritePin(BUZZER_GPIO_Port, BUZZER_Pin, SET);
       } else
       {
         printf("Nie wykryto karty \r\n");
       }
-      watek1 =0;
+      watek1 = 0;
     }
 
 ////////////////RFID_END///////////////////////
 
     if (FlagRead_LedStrip >= 10)
     {
-      watek2 =1;
+      watek2 = 1;
       FlagRead_LedStrip = 0;
       vLedStrip_ReadStatus(&LedStrip);
-      LedStrip_Speed = vLed_control(&LedStrip);
+      LedStrip_Speed = vLed_control(&LedStrip,Semaphor_NoReadRFID);
       if ((speed + LedStrip_Speed.LeftSpeed) >= 0)
       {
         MotorPID_Left.ValueTask = speed + LedStrip_Speed.LeftSpeed;
@@ -224,12 +234,12 @@ int main(void)
       }
       vMotorAction_LedStrip(&MotorLeft, &MotorRight, LedStrip_Speed.Action);
 
-      watek2 =0;
+      watek2 = 0;
     }
 
     if (FlagPID >= 10)
     {
-      watek3 =1;
+      watek3 = 1;
       FlagPID = 0;
       vMotorPID_Control(&MotorPID_Left, &MotorLeft);
       vMotorPID_Control(&MotorPID_Right, &MotorRight);
@@ -243,27 +253,29 @@ int main(void)
       vClearCounter(MotorLeft.Tim_Encoder);
       vClearCounter(MotorRight.Tim_Encoder);
 
-      watek3 =0;
+      watek3 = 0;
     }
   }
   /* USER CODE END 3 */
 }
 
 /**
-  * @brief System Clock Configuration
-  * @retval None
-  */
-void SystemClock_Config(void)
-{
-  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
-  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+ * @brief System Clock Configuration
+ * @retval None
+ */
+void SystemClock_Config(void) {
+  RCC_OscInitTypeDef RCC_OscInitStruct =
+  { 0 };
+  RCC_ClkInitTypeDef RCC_ClkInitStruct =
+  { 0 };
 
   /** Configure the main internal regulator output voltage 
-  */
-  __HAL_RCC_PWR_CLK_ENABLE();
+   */
+  __HAL_RCC_PWR_CLK_ENABLE()
+  ;
   __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
   /** Initializes the CPU, AHB and APB busses clocks 
-  */
+   */
   RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
   RCC_OscInitStruct.HSIState = RCC_HSI_ON;
   RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
@@ -278,15 +290,15 @@ void SystemClock_Config(void)
     Error_Handler();
   }
   /** Activate the Over-Drive mode 
-  */
+   */
   if (HAL_PWREx_EnableOverDrive() != HAL_OK)
   {
     Error_Handler();
   }
   /** Initializes the CPU, AHB and APB busses clocks 
-  */
-  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
-                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
+   */
+  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK
+      | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
   RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV4;
@@ -299,11 +311,10 @@ void SystemClock_Config(void)
 }
 
 /**
-  * @brief NVIC Configuration.
-  * @retval None
-  */
-static void MX_NVIC_Init(void)
-{
+ * @brief NVIC Configuration.
+ * @retval None
+ */
+static void MX_NVIC_Init(void) {
   /* TIM8_BRK_TIM12_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(TIM8_BRK_TIM12_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(TIM8_BRK_TIM12_IRQn);
@@ -313,17 +324,20 @@ static void MX_NVIC_Init(void)
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
   if (htim->Instance == TIM12)
     Flag_read_card++;
-    FlagPID++;
+  FlagPID++;
   FlagRead_LedStrip++;
+  if (Semaphor_CloseRFID)
+  {
+    Flag_Close_RFID++;
+  }
 }
 /* USER CODE END 4 */
 
 /**
-  * @brief  This function is executed in case of error occurrence.
-  * @retval None
-  */
-void Error_Handler(void)
-{
+ * @brief  This function is executed in case of error occurrence.
+ * @retval None
+ */
+void Error_Handler(void) {
   /* USER CODE BEGIN Error_Handler_Debug */
   /* User can add his own implementation to report the HAL error return state */
 
@@ -332,14 +346,14 @@ void Error_Handler(void)
 
 #ifdef  USE_FULL_ASSERT
 /**
-  * @brief  Reports the name of the source file and the source line number
-  *         where the assert_param error has occurred.
-  * @param  file: pointer to the source file name
-  * @param  line: assert_param error line source number
-  * @retval None
-  */
+ * @brief  Reports the name of the source file and the source line number
+ *         where the assert_param error has occurred.
+ * @param  file: pointer to the source file name
+ * @param  line: assert_param error line source number
+ * @retval None
+ */
 void assert_failed(uint8_t *file, uint32_t line)
-{ 
+{
   /* USER CODE BEGIN 6 */
   /* User can add his own implementation to report the file name and line number,
    tex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
