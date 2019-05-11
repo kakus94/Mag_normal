@@ -32,6 +32,11 @@
 #include "Motor_Control.h"
 #include "LED_Strip.h"
 #include "RC522_driver.h"
+#include "ESP_8266_driver.h"
+#include "FIFO_driver.h"
+#include "DEVICE_driver.h"
+#include "string.h"
+#include "stdbool.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -59,8 +64,6 @@ volatile uint8_t FlagPID;
 volatile uint16_t Flag_read_card;
 volatile uint8_t FlagRead_LedStrip;
 
-
-
 volatile int16_t speed = 5;
 
 // variable RFID
@@ -71,13 +74,71 @@ unsigned char MyID[4] =
 uint8_t data[50];
 uint16_t RFID_size = 0;
 
+/////////ESP
+uint8_t Received[100];
+bool timeouted;
+
+uint8_t NumberOfTags = 6;
+uint8_t TempSectorData[4] =
+{ 0xAA, 0xAA, 0xAA, 0xAA };
+uint8_t TempData[32];
+uint8_t TempTagsData[] =
+{ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22,
+    23, 24 };
+
+PROTOCOL_FrameTypeDef p_frame;
+
+/**
+ * FIFO buffers
+ */
+volatile uint8_t Fifo_Tx[FIFO_BUF_SIZE];
+volatile uint8_t Fifo_Rx[FIFO_BUF_SIZE];
+FIFO_ApiTypeDef FIFO_TX =
+{ Fifo_Tx, 0, 0, 0, FIFO_BUF_SIZE };
+FIFO_ApiTypeDef FIFO_RX =
+{ Fifo_Rx, 0, 0, 0, FIFO_BUF_SIZE };
+
+/**
+ * Linear Buffers
+ */
+uint8_t LinBuff[FIFO_BUF_SIZE];
+uint8_t TagData[FIFO_BUF_SIZE];
+PROTOCOL_LinearBuffer_ApiTypeDef LinearBuffer =
+{ LinBuff, 0,
+FIFO_BUF_SIZE };
+PROTOCOL_LinearBuffer_ApiTypeDef TagDataStuct =
+{ TagData, 0,
+FIFO_BUF_SIZE };
+////////
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
-static void MX_NVIC_Init(void);
+void MX_NVIC_Init(void);
 /* USER CODE BEGIN PFP */
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
+  if (USART1 == huart->Instance)
+  {
 
+    FIFO_PutByte(&FIFO_RX, *Received);
+    if (FIFO_RX.length > 16)
+    {
+    }
+    HAL_UART_Receive_IT(&huart1, Received, 1); // Ponowne w³¹czenie nas³uchiwania
+  }
+}
+
+void PrepareFrame(uint8_t* data, uint8_t cmd) {
+  p_frame.header.dst_address = BROADCAST_ADDRESS;
+  p_frame.header.src_address = DEVICE_ADDRESS;
+//  PROTOCOL_FrameTypeDef* temp = (PROTOCOL_FrameTypeDef*)data;
+  p_frame.header.length = sizeof(PROTOCOL_HeaderTypeDef) + (sizeof(data));
+  p_frame.header.command = cmd;
+  p_frame.header.response = true;
+  uint8_t size = strlen(data);
+  memcpy(p_frame.resp_payload.get_data_payload.tags_data, data, size);
+
+}
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -164,8 +225,30 @@ int main(void) {
   HAL_GPIO_WritePin(RFID_RESET_GPIO_Port, RFID_RESET_Pin, SET);
 
   MFRC522_Init();
-  printf("MFRC522_Init\n\r");
-  printf("Waiting for RFID Card...!\n\r");
+
+  /**
+   *  ESP_8266_Init
+   */
+//  myESP_8266_InitClient(1,"_NETWORK","1QWERTY7",SERVER_PORT);
+  myESP_8266_InitClient(1, "ESP8266_EMPE", "1QWERTY7", SERVER_PORT);
+
+  HAL_Delay(1000);
+
+  HAL_StatusTypeDef status = HAL_ERROR;
+  HAL_UART_Receive_IT(&huart1, Received, 1);
+  FIFO_Clear(&FIFO_RX);
+  PROTOCOL_LinBuffClr(&LinearBuffer);
+
+  /*reset TempData */
+    memset(TempData, 0x0, sizeof(TempData));
+    /* write sektor */
+    memcpy(TempData, TempSectorData, sizeof(TempSectorData));
+    /* write number of tags */
+    memcpy(TempData + sizeof(TempSectorData), &NumberOfTags,
+        sizeof(NumberOfTags));
+    /* write tags */
+    memcpy(TempData + (sizeof(TempSectorData) + sizeof(NumberOfTags)),
+        &TempTagsData, sizeof(TempData));
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -175,12 +258,55 @@ int main(void) {
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+    //////////////////ESP////////////////////////
+    status = PROTOCOL_GetDataFromFifo();
+    if (HAL_OK == status)
+    {
+      status = PROTOCOL_CheckFrame(&LinearBuffer);
+    }
+    if (HAL_OK == status)
+    {
+      PROTOCOL_FrameTypeDef* pRecFrame =
+          (PROTOCOL_FrameTypeDef*) LinearBuffer.p_lin_buffer;
+      switch (pRecFrame->header.command)
+      {
+      case CMD_STOP:
+        myESP8266_SendFrame((uint8_t*)"\r\nRobot CMD_STOP!!\r\n", SERVER_PORT);
+        break;
+      case CMD_START:
+        myESP8266_SendFrame((uint8_t*)"\r\nRobot CMD_START!!\r\n", SERVER_PORT);
+        break;
+      case CMD_STATUS:
+        myESP8266_SendFrame((uint8_t*)"\r\nOK Robot CMD_STATUS!!\r\n", SERVER_PORT);
+        break;
+      case CMD_CONFIG:
+        myESP8266_SendFrame((uint8_t*)"\r\nOK Robot CMD_CONFIG!!\r\n", SERVER_PORT);
+        break;
+      case CMD_GET_DATA:
+//        myESP8266_SendFrame((uint8_t*)"\r\nOK Robot CMD_GET_DATA!!\r\n", SERVER_PORT);
+//        PrepareFrame(TempData, CMD_GET_DATA);
+//        HAL_UART_Transmit(&esp_uart, &p_frame, p_frame.header.length, 1000);
+         HAL_UART_Transmit(&esp_uart, "FFFFcostamAbyDzialaloAAA", strlen("FFFFcostamAbyDzialaloAAA"), 1000);
+
+        break;
+      default:
+        myESP8266_SendFrame((uint8_t*)"\r\nHello Server, I am STM32 !!\r\n", SERVER_PORT);
+        break;
+      }
+      HAL_Delay(200);
+      myESP8266_SendEnd();
+      FIFO_Clear(&FIFO_RX);
+      PROTOCOL_LinBuffClr(&LinearBuffer);
+      status = HAL_ERROR;
+    }
+    /////////////////ESP_END///////////////////
+
 //////////////////////CLOSE_READ_RFID////////////////////////////////
     if (Flag_Close_RFID > 5000)
     {
-      Flag_Close_RFID = 0 ;
-      Semaphor_CloseRFID = 0 ;
-      Semaphor_NoReadRFID = 1 ;
+      Flag_Close_RFID = 0;
+      Semaphor_CloseRFID = 0;
+      Semaphor_NoReadRFID = 1;
       Count_NoReadRFID++;
     }
 ////////END///////////CLOSE_READ_RFID///////////END/////////////////
@@ -192,9 +318,16 @@ int main(void) {
       if (MFRC522_Check(CardID) == MI_OK)
       {
         Semaphor_CloseRFID = 0;
-        Count_NoReadRFID =0 ;
-        Semaphor_NoReadRFID = 0 ;
+        Count_NoReadRFID = 0;
+        Semaphor_NoReadRFID = 0;
         Flag_Close_RFID = 0;
+        /*
+         */
+        myESP8266_SendFrame((uint8_t*)"\r\nOK Robot CMD_GET_DATA!!\r\n", SERVER_PORT);
+               PrepareFrame(CardID, CMD_GET_DATA);
+               HAL_UART_Transmit(&esp_uart, &p_frame, p_frame.header.length, 1000);
+        /*
+         */
         printf("[%02x-%02x-%02x-%02x] \r\n", CardID[0], CardID[1], CardID[2],
             CardID[3]);
         for (int var = 0; var < 15; ++var)
@@ -217,7 +350,7 @@ int main(void) {
       watek2 = 1;
       FlagRead_LedStrip = 0;
       vLedStrip_ReadStatus(&LedStrip);
-      LedStrip_Speed = vLed_control(&LedStrip,Semaphor_NoReadRFID);
+      LedStrip_Speed = vLed_control(&LedStrip, Semaphor_NoReadRFID);
       if ((speed + LedStrip_Speed.LeftSpeed) >= 0)
       {
         MotorPID_Left.ValueTask = speed + LedStrip_Speed.LeftSpeed;
@@ -269,12 +402,12 @@ void SystemClock_Config(void) {
   RCC_ClkInitTypeDef RCC_ClkInitStruct =
   { 0 };
 
-  /** Configure the main internal regulator output voltage 
+  /** Configure the main internal regulator output voltage
    */
   __HAL_RCC_PWR_CLK_ENABLE()
   ;
   __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
-  /** Initializes the CPU, AHB and APB busses clocks 
+  /** Initializes the CPU, AHB and APB busses clocks
    */
   RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
   RCC_OscInitStruct.HSIState = RCC_HSI_ON;
@@ -289,13 +422,13 @@ void SystemClock_Config(void) {
   {
     Error_Handler();
   }
-  /** Activate the Over-Drive mode 
+  /** Activate the Over-Drive mode
    */
   if (HAL_PWREx_EnableOverDrive() != HAL_OK)
   {
     Error_Handler();
   }
-  /** Initializes the CPU, AHB and APB busses clocks 
+  /** Initializes the CPU, AHB and APB busses clocks
    */
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK
       | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
@@ -314,10 +447,13 @@ void SystemClock_Config(void) {
  * @brief NVIC Configuration.
  * @retval None
  */
-static void MX_NVIC_Init(void) {
+void MX_NVIC_Init(void) {
   /* TIM8_BRK_TIM12_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(TIM8_BRK_TIM12_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(TIM8_BRK_TIM12_IRQn);
+  /* USART1_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(USART1_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(USART1_IRQn);
 }
 
 /* USER CODE BEGIN 4 */

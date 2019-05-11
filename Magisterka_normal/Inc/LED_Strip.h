@@ -31,7 +31,7 @@
 #define Led5_Gpio 	LED_Control1_GPIO_Port
 #define Led5_Pin    LED_Control1_Pin
 
-#define size 10
+#define map_size 10
 
 enum
 {

@@ -26,7 +26,7 @@ void vLedStrip_ReadStatus(LedStrip_InitTypeDef* LedStript) {
     if (LedStript->Led_StatusPin != LedStript->history[LedStript->pivot])
     {
       LedStript->pivot++;
-      if (LedStript->pivot >= size)
+      if (LedStript->pivot >= map_size)
       {
         LedStript->pivot = 0;
       }
@@ -47,9 +47,9 @@ LedStrip_Speed_InitTypeDef vLed_control(LedStrip_InitTypeDef* LedStript,
       uint8_t TempPivot;
       uint8_t LastLine;
       TempPivot = LedStript->pivot - 1;
-      if (TempPivot > size)
+      if (TempPivot > map_size)
       {
-        LastLine = LedStript->history[size - 1];
+        LastLine = LedStript->history[map_size - 1];
       } else
       {
         LastLine = LedStript->history[TempPivot];
